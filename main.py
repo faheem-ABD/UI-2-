@@ -44,7 +44,7 @@ while running:
 
 pygame.quit()
 
-
+print("Hekko word")
 
 
 
