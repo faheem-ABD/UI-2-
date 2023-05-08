@@ -82,112 +82,9 @@ class Soldier(pygame.sprite.Sprite):
          screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rectangle) 
 
 
-class ChickenBombHandler():
-    def __init__(self):
-        self.max_amount = 10
-        self.current_amount = 0
-        self.time_limit = 100
-        self.explo_time = 20
-
-        self.active_bombs = list()
-        self.detonated_bombs = list()
-
-        self.img_1 = pygame.image.load(f'img/icons/chicken_bomb_1.png')
-        self.img_2 = pygame.image.load(f'img/icons/chicken_bomb_2.png')
-        self.img_feather = pygame.image.load(f'img/icons/feather.png')
-        self.img_poof_1 = pygame.image.load(f'img/icons/poof_1.png')
-        self.img_poof_2 = pygame.image.load(f'img/icons/poof_2.png')
-        self.img_poof_3 = pygame.image.load(f'img/icons/poof_3.png')
-        self.img_poof_4 = pygame.image.load(f'img/icons/poof_4.png')
-        
-        scale = 1
-        self.image_1 = pygame.transform.scale(self.img_1, (int(self.img_1.get_width() * scale ), int(self.img_1.get_height() * scale))) 
-        self.image_2 = pygame.transform.scale(self.img_2, (int(self.img_2.get_width() * scale ), int(self.img_2.get_height() * scale)))  
- 
-        self.image_feather = pygame.transform.scale(self.img_feather, (int(self.img_feather.get_width() * scale ), int(self.img_feather.get_height() * scale)))
-        
-        scale = 2
-        self.image_poof_1 = pygame.transform.scale(self.img_poof_1, (int(self.img_poof_1.get_width() * scale ), int(self.img_poof_1.get_height() * scale)))
-        self.image_poof_2 = pygame.transform.scale(self.img_poof_2, (int(self.img_poof_2.get_width() * scale ), int(self.img_poof_2.get_height() * scale)))
-        self.image_poof_3 = pygame.transform.scale(self.img_poof_3, (int(self.img_poof_3.get_width() * scale ), int(self.img_poof_3.get_height() * scale)))
-        self.image_poof_4 = pygame.transform.scale(self.img_poof_4, (int(self.img_poof_4.get_width() * scale ), int(self.img_poof_4.get_height() * scale)))
-        
-
-    def spawn_chicken_bomb(self, player):
-        if self.current_amount >= self.max_amount:
-            return
-        rect = self.img_1.get_rect()
-        rect.center = (player.rectangle.midtop[0], player.rectangle.midtop[1])
-        dir = player.direction
-        time = 0
-        chicken_bomb = [rect, dir, time]
-        self.active_bombs.append(chicken_bomb)
-        self.current_amount += 1 
-
-    def chicken_explo(self):
-        chicken = self.active_bombs.pop(0)
-        self.current_amount -= 1
-        time = 0
-        x = chicken[0].x
-        y = chicken[0].y
-        self.detonated_bombs.append([time, x, y])
-
-    def update(self): #update bomb path, timer, and draw.
-        for chicken in self.active_bombs: 
-            self.draw(chicken)
-            chicken[2] += 1
-            if chicken[2] >= self.time_limit:
-                self.chicken_explo()
-
-            chicken[0].x += 4 * chicken[1]
-            x_value = chicken[2]
-            if x_value < 20:
-                chicken[0].y -= 3
-            else:
-                chicken[0].y += 2
-        for explo in self.detonated_bombs:
-            self.draw_feather(explo)
-            explo[0] += 1
-            if explo[0] >= self.explo_time:
-                self.detonated_bombs.remove(explo)
-
-
+         
     
-    def draw(self, chicken):
-        time = chicken[2]
-        rot_speed = 4
-        if time % 8 < 4:
-            screen.blit(pygame.transform.rotate(self.image_1, time*4), (chicken[0].x, chicken[0].y))
-        else:
-            screen.blit(pygame.transform.rotate(self.image_2, time*4), (chicken[0].x, chicken[0].y))
-            
-    def draw_feather(self, explo):
-        time = explo[0]
-        speed = 4
-        screen.blit(pygame.transform.rotate(self.image_feather, 0), (explo[1]+(time*speed), explo[2]))
-        screen.blit(pygame.transform.rotate(self.image_feather, 180), (explo[1]-(time*speed), explo[2]))
-        screen.blit(pygame.transform.rotate(self.image_feather, 270), (explo[1], explo[2]+(time*speed)))
-        screen.blit(pygame.transform.rotate(self.image_feather, 90), (explo[1], explo[2]-(time*speed)))
-        
-        screen.blit(pygame.transform.rotate(self.image_feather, -45), (explo[1]+(time*speed/2), explo[2]+(time*speed/2)))
-        screen.blit(pygame.transform.rotate(self.image_feather, 225), (explo[1]-(time*speed/2), explo[2]+(time*speed/2)))
-        screen.blit(pygame.transform.rotate(self.image_feather, 45), (explo[1]+(time*speed/2), explo[2]-(time*speed/2)))
-        screen.blit(pygame.transform.rotate(self.image_feather, 135), (explo[1]-(time*speed/2), explo[2]-(time*speed/2)))
-
-        offestX = -40
-        offestY = -40
-        if time < 4:
-            screen.blit(self.image_poof_1, (explo[1]+offestX, explo[2]+offestY))
-        elif time < 8:
-            screen.blit(self.image_poof_2, (explo[1]+offestX, explo[2]+offestY))
-        elif time < 12:
-            screen.blit(self.image_poof_3, (explo[1]+offestX, explo[2]+offestY))
-        elif time < 16:
-            screen.blit(self.image_poof_4, (explo[1]+offestX, explo[2]+offestY))
-
-
-
-
+     
      
 
 #Creating instances with the given x,y and size co ordinates
@@ -199,7 +96,7 @@ x = 200
 y = 200
 scale = 3 # Try to avoid a float
 
-bombHandler = ChickenBombHandler()
+
 
 #Event handler
 running = True
@@ -212,7 +109,6 @@ while running:
     player.movement(move_left , move_right)
     # player2.draw()
 
-    bombHandler.update()
 
      
     for event in pygame.event.get():
@@ -226,9 +122,7 @@ while running:
             if event.key == pygame.K_a: # keyboard button a is set for the left movemen
                 move_left = True    
             if event.key == pygame.K_d: # keyboard button a is set for the right movemen
-                move_right  = True     
-            if event.key == pygame.K_b:
-                bombHandler.spawn_chicken_bomb(player)
+                move_right  = True        
 
          # Set a release mode
         if event.type == pygame.KEYUP:
@@ -238,7 +132,7 @@ while running:
                 move_right  = False    
 
             if event.key == pygame.K_ESCAPE : # set a button for esc button
-                run =False 
+                run =False            
  
     # To update and call the image according to the rectangle  from the blit
     pygame.display.update()        
