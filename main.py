@@ -39,10 +39,15 @@ def draw_bg():
     pygame.draw.line(screen, White, (0, 300), (SCREEN_WIDTH, 300), 10)
 
 class Soldier(pygame.sprite.Sprite):
-     def __init__(self , char_type, x, y , scale, speed):  # Creating instance for the movement of characters of sprites 
+     def __init__(self , char_type, x, y , scale, speed, ammo):  # Creating instance for the movement of characters of sprites 
          self.alive = True
          self.char_type = char_type 
          self.speed = speed
+         self.ammo = ammo
+         self.start_ammo = ammo
+         self.shoot_cooldown = 0
+         self.health = 100
+         self.max_health = self.health
          self.direction = 1
          self.vel_y = 0
          self.jump = False
@@ -54,7 +59,7 @@ class Soldier(pygame.sprite.Sprite):
          self.update_time = pygame.time.get_ticks()
 
 
-         animation_types = ['Idle', 'Run', 'Jump']
+         animation_types = ['Idle', 'Run', 'Jump', 'Death']
          for animation in animation_types:
             temp_list = []
             #Get a list of all the files in the directory
@@ -69,13 +74,19 @@ class Soldier(pygame.sprite.Sprite):
          # To create a boundary tp contol the environemnt , 
          # where the image is drawn and self controls as instance 
          self.image = self.animation_list[self.action][self.frame_index]
-         self.rectangle = img.get_rect()
+         self.rect = img.get_rect()
 
          # Aligning to the cordinates
-         self.rectangle.center = (x ,y)
+         self.rect.center = (x ,y)
 
          # These instances are like blue prints,
          #  we can create as many as we want for the various actions
+
+     def update(self):
+         self.update_animation()
+         self.check_alive()
+         if self.shoot_cooldown > 0:
+             self.shoot_cooldown -= 1
 
 
      def movement(self, move_left, move_right): # Create variables for the movements
@@ -105,14 +116,21 @@ class Soldier(pygame.sprite.Sprite):
          dy += self.vel_y
 
 		#check collision with floor
-         if self.rectangle.bottom + dy > 300:
-            dy = 300 - self.rectangle.bottom
+         if self.rect.bottom + dy > 300:
+            dy = 300 - self.rect.bottom
             self.in_air = False
                         
 
-        # Update rectangle position   
-         self.rectangle.x += dx
-         self.rectangle.y += dy    
+        # Update rect position   
+         self.rect.x += dx
+         self.rect.y += dy    
+
+     def shoot(self):
+        if self.shoot_cooldown == 0 and self.ammo > 0:
+            self.shoot_cooldown = 20 # Reload number, lower number faster speed
+            bullet = Bullet(self.rect.centerx + (0.6* self.rect.size[0]* self.direction),self.rect.centery,self.direction)
+            bullet_group.add(bullet)
+            self.ammo -= 1
     
      def update_animation(self):
         #as long as it fast enough it can update animation prefectly.
@@ -123,7 +141,10 @@ class Soldier(pygame.sprite.Sprite):
             self.frame_index += 1
         #when animation ran out then reset it
         if self.frame_index >= len(self.animation_list[self.action]):
-            self.frame_index =0
+            if self.action == 3:
+                self.frame_index = len(self.animation_list[self.action]) -1
+            else:
+                self.frame_index =0
      
      
      def update_action(self, new_action):
@@ -133,12 +154,19 @@ class Soldier(pygame.sprite.Sprite):
 			#update settings
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
+    
+     def check_alive(self):
+         if self.health <= 0:
+             self.health = 0
+             self.speed = 0
+             self.alive = False
+             self.update_action(3)
 
      def draw(self): # Create methods to reduce the calling
          
           #Blit function copies image from the surface to the screen 
           # using Object Oriented Programmingm
-         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rectangle) 
+         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect) 
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -146,11 +174,26 @@ class Bullet(pygame.sprite.Sprite):
         self.speed = 10
         self.image = bullet_img
         self.rect = self.image.get_rect()
-        self.rect.center = (x,y)
+        self.rect.center = (x, y)
         self.direction = direction
+
     def update(self):
         # Bullet move forward
-        self.rect.x += (self.direction*self.speed)
+        self.rect.x += (self.direction * self.speed)
+        # If bullet disppaer from screen then kill it 
+        if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
+            self.kill()
+        # Collision check
+        if pygame.sprite.spritecollide(player, bullet_group, False):
+            if player.alive:
+                player.health -= 5
+                self.kill()
+        if pygame.sprite.spritecollide(enemy, bullet_group, False):
+            if enemy.alive:
+                enemy.health -= 20
+                self.kill()
+
+
 
 
 
@@ -195,7 +238,7 @@ class ChickenBombHandler():
         if self.current_amount >= self.max_amount:
             return
         rect = self.img_1.get_rect()
-        rect.center = (player.rectangle.midtop[0], player.rectangle.midtop[1])
+        rect.center = (player.rect.midtop[0], player.rect.midtop[1])
         dir = player.direction
         time = 0
         chicken_bomb = [rect, dir, time]
@@ -269,13 +312,13 @@ class ChickenBombHandler():
      
 
 #Creating instances with the given x,y and size co ordinates
-player = Soldier('player', 200, 200, 3, 5)
-enemy = Soldier('enemy', 400, 200, 3, 5)
+player = Soldier('player', 200, 200, 3, 5, 20)
+enemy = Soldier('enemy', 400, 200, 3, 5, 20)
  
 # player2 = Soldier(400, 200, 3) #since we have created instances, just need to specify the co ordinates
-x = 200        
-y = 200
-scale = 3 # Try to avoid a float
+#x = 200        
+#y = 200
+#scale = 3 # Try to avoid a float
 
 bombHandler = ChickenBombHandler()
 
@@ -285,9 +328,13 @@ while running:
 
     clock.tick(FPS)
     draw_bg()
-    player.update_animation()
+    player.update()
     player.draw() 
+
+
+    enemy.update()
     enemy.draw()
+    
     
     bullet_group.update()
     bullet_group.draw(screen)
@@ -296,8 +343,7 @@ while running:
 
     if player.alive:
         if shoot:
-            bullet = Bullet(player.rectangle.centerx + (0.6* player.rectangle.size[0]*player.direction),player.rectangle.centery,player.direction)
-            bullet_group.add(bullet)
+            player.shoot()
         if player.in_air:
             player.update_action(2)#2: jump
         elif move_left or move_right:
@@ -320,9 +366,9 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a: # keyboard button a is set for the left movemen
                 move_left = True    
-            if event.key == pygame.K_d: # keyboard button a is set for the right movemen
+            if event.key == pygame.K_d: # keyboard button b is set for the right movemen
                 move_right  = True 
-            if event.key == pygame.K_SPACE: # keyboard button a is set for the right movemen
+            if event.key == pygame.K_SPACE: # keyboard button SPACE is set for shooting
                 shoot  = True    
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
