@@ -1,6 +1,8 @@
 import pygame
 import os
 
+#from pygame.sprite import _Group
+
 # Initialising game
 pygame.init()
 
@@ -20,12 +22,15 @@ FPS = 60
 GRAVITY = 0.75
 
 # Define player actions variable
-
 move_left = False
 move_right = False
+shoot = False
+
+# Define bullet
+bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
+
 
 # Define colours
-
 BG = (144, 201, 120)
 White = (255, 255, 255)
 
@@ -55,7 +60,7 @@ class Soldier(pygame.sprite.Sprite):
             #Get a list of all the files in the directory
             num_of_frames = len(os.listdir(f'img/{self.char_type}/{animation}'))
             for i in range(num_of_frames):
-                img = pygame.image.load(f'img/{self.char_type}/{animation}/{i}.png')
+                img = pygame.image.load(f'img/{self.char_type}/{animation}/{i}.png').convert_alpha()
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                 temp_list.append(img)
             self.animation_list.append(temp_list)
@@ -134,6 +139,25 @@ class Soldier(pygame.sprite.Sprite):
           #Blit function copies image from the surface to the screen 
           # using Object Oriented Programmingm
          screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rectangle) 
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, direction):
+        pygame.sprite.Sprite.__init__(self)
+        self.speed = 10
+        self.image = bullet_img
+        self.rect = self.image.get_rect()
+        self.rect.center = (x,y)
+        self.direction = direction
+    def update(self):
+        # Bullet move forward
+        self.rect.x += (self.direction*self.speed)
+
+
+
+
+# Create a group for bullte 
+bullet_group = pygame.sprite.Group()
+
 
 
 class ChickenBombHandler():
@@ -264,9 +288,16 @@ while running:
     player.update_animation()
     player.draw() 
     enemy.draw()
-    # player2.draw()
+    
+    bullet_group.update()
+    bullet_group.draw(screen)
+
+
 
     if player.alive:
+        if shoot:
+            bullet = Bullet(player.rectangle.centerx + (0.6* player.rectangle.size[0]*player.direction),player.rectangle.centery,player.direction)
+            bullet_group.add(bullet)
         if player.in_air:
             player.update_action(2)#2: jump
         elif move_left or move_right:
@@ -277,14 +308,6 @@ while running:
 
     bombHandler.update()
 
-    if player.alive:
-        if player.in_air:
-            player.update_action(2)#2: jump
-        elif move_left or move_right:
-            player.update_action(1)#1: run
-        else:
-            player.update_action(0)#0: idle
-        player.movement(move_left, move_right)
 
      
     for event in pygame.event.get():
@@ -298,7 +321,9 @@ while running:
             if event.key == pygame.K_a: # keyboard button a is set for the left movemen
                 move_left = True    
             if event.key == pygame.K_d: # keyboard button a is set for the right movemen
-                move_right  = True     
+                move_right  = True 
+            if event.key == pygame.K_SPACE: # keyboard button a is set for the right movemen
+                shoot  = True    
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
             if event.key == pygame.K_b:
@@ -309,10 +334,11 @@ while running:
             if event.key == pygame.K_a:
                 move_left = False    
             if event.key == pygame.K_d: 
-                move_right  = False    
-
+                move_right = False    
+            if event.key == pygame.K_SPACE: 
+                shoot = False  
             if event.key == pygame.K_ESCAPE : # set a button for esc button
-                run =False 
+                run = False 
  
     # To update and call the image according to the rectangle  from the blit
     pygame.display.update()        
