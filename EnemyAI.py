@@ -7,15 +7,17 @@ class EnemyHandler():
     def __init__(self):
 
         self.listOfEnemies = []
-        self.EnemyVisionLenght = 400
+        self.EnemyVisionLenght = 120 # will be doubled when used in function
 
         self.player = None
         self.screen = None
+        self.terrain = None
 
     #import values from main
-    def setup(self, playerChar, mainScreen):
+    def setup(self, playerChar, mainScreen, GameTerrain):
         self.player = playerChar
         self.screen = mainScreen
+        self.terrain = GameTerrain
 
     #add enemy and information regarding their current state
     def addEnemyToList(self, enemy):
@@ -49,16 +51,14 @@ class EnemyHandler():
                 
                 # ---------------------- check player --------------------------------------
                 # --------------------------------------------------------------------------
-                hitRect = None
-                if enemy.direction > 0: #looking right
-                    hitRect = pygame.Rect(enemy.rect.center[0], enemy.rect.center[1], self.EnemyVisionLenght, 1)
-                else: #looking left
-                    hitRect = pygame.Rect(enemy.rect.center[0]-self.EnemyVisionLenght, enemy.rect.center[1], self.EnemyVisionLenght, 1)
+                # looking either right or left depending on "enemy.direction"
+                hitRect = pygame.Rect(enemy.rect.centerx+(self.EnemyVisionLenght*(enemy.direction-1)+20*enemy.direction), enemy.rect.centery, self.EnemyVisionLenght*2-20, 1)
+                
+                if pygame.Rect.colliderect(self.player.rect, hitRect) and self.player.alive:
+                    enemy.shoot()
 
                 # test - visualizing hitRect
                 #pygame.draw.rect(self.screen, (0, 0, 0), hitRect)
-                if pygame.Rect.colliderect(self.player.rect, hitRect) and self.player.alive:
-                    enemy.shoot()
 
 
                 # ---------------------- check movement ------------------------------------
@@ -86,6 +86,18 @@ class EnemyHandler():
                     if enemyInfo[2] >= self.getStateTimerValues(self.State.MOVE_RIGHT):
                         self.updateState(enemyInfo)
 
+                # ---------------------- check low ground (for jumps) ----------------------
+                # --------------------------------------------------------------------------
+                scan_beam_length = 40
+                scan_bottom = pygame.Rect(enemy.rect.centerx+(scan_beam_length*(enemy.direction-1)), enemy.rect.centery+45, scan_beam_length*2, 1)
+                scan_top = pygame.Rect(enemy.rect.centerx+(scan_beam_length*(enemy.direction-1)), enemy.rect.centery-20, scan_beam_length*2, 1)
+
+                if pygame.Rect.collidelist(scan_bottom, self.terrain) > -1 and not pygame.Rect.collidelist(scan_top, self.terrain) > -1 and not enemy.in_air:
+                    enemy.jump = True
+
+                # test - visualizing scan beams
+                #pygame.draw.rect(self.screen, (200, 0, 0), scan_bottom)
+                #pygame.draw.rect(self.screen, (200, 0, 0), scan_top)
 
                 # ---------------------- update animations ---------------------------------
                 # --------------------------------------------------------------------------
@@ -114,7 +126,7 @@ class EnemyHandler():
         if state == self.State.STAY:
             return 90
         elif state == self.State.MOVE_LEFT or state == self.State.MOVE_RIGHT:
-            return 120
+            return 90
         else:
             return 0
     
