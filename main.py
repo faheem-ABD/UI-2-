@@ -23,6 +23,7 @@ FPS = 60
 
 #define game variables
 GRAVITY = 0.75
+TILE_SIZE = 40
 
 # Define player actions variable
 move_left = False
@@ -32,10 +33,27 @@ shoot = False
 # Define bullet
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 
+#pick up boxes
+health_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
+ammo_box_img = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
+item_boxes = {
+	'Health'	: health_box_img,
+	'Ammo'		: ammo_box_img,
+}
 
 # Define colours
 BG = (144, 201, 120)
 White = (255, 255, 255)
+
+font = pygame.font.SysFont('Time new roman', 30)
+
+
+def draw_text(text, font, text_color, x, y):
+    img = font.render(text, True, text_color)
+    screen.blit(img, (x, y))
+
+
+
 
 def draw_bg():
     screen.fill(BG)
@@ -170,6 +188,30 @@ class Soldier(pygame.sprite.Sprite):
           #Blit function copies image from the surface to the screen 
           # using Object Oriented Programmingm
          screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect) 
+         
+
+
+class ItemBox(pygame.sprite.Sprite):
+	def __init__(self, item_type, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		self.item_type = item_type
+		self.image = item_boxes[self.item_type]
+		self.rect = self.image.get_rect()
+		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+	def update(self):
+        # Check  collision 
+		
+		if pygame.sprite.collide_rect(self, player):
+			#check what kind of box it was
+			if self.item_type == 'Health':
+				player.health += 25
+				if player.health > player.max_health:
+					player.health = player.max_health
+			elif self.item_type == 'Ammo':
+				player.ammo += 15
+			self.kill()
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -209,6 +251,16 @@ class Bullet(pygame.sprite.Sprite):
 
 # Create a group for bullte 
 bullet_group = pygame.sprite.Group()
+item_box_group = pygame.sprite.Group()
+
+
+item_box = ItemBox('Health', 100, 260)
+item_box_group.add(item_box)
+item_box = ItemBox('Ammo', 400, 260)
+item_box_group.add(item_box)
+
+
+
 
 #Creating instances with the given x,y and size co ordinates
 player = Soldier('player', 200, 200, 3, 5, 20)
@@ -231,8 +283,11 @@ EnemyHandler.addEnemyToList(enemy)
 running = True
 while running:
 
-    clock.tick(FPS)
+    clock.tick(FPS) 
     draw_bg()
+    draw_text(f'AMMO:{player.ammo}',font,White, 15, 20)
+    draw_text(f'HEALTH:{player.health}',font,White, 15, 50)
+
     player.update()
     player.draw() 
     
@@ -242,6 +297,10 @@ while running:
     
     bullet_group.update()
     bullet_group.draw(screen)
+
+    item_box_group.update()
+    item_box_group.draw(screen)
+    
 
 
 
