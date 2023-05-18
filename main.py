@@ -33,17 +33,19 @@ move_left = False
 move_right = False
 shoot = False
 
+img_list = []
+for x in range(TILE_TYPES):
+	img = pygame.image.load(f'img/Tile/{x}.png')
+	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+	img_list.append(img)
+
 #load images
 pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
 pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
 mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
 sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
 #store tiles in a list
-img_list = []
-for x in range(TILE_TYPES):
-	img = pygame.image.load(f'img/Tile/{x}.png')
-	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
-	img_list.append(img)
+water_img = pygame.image.load('img/tile/0.png').convert_alpha()
 
 # Define bullet
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
@@ -64,7 +66,8 @@ item_boxes = {
 BG = (255, 201, 120)
 White = (255, 255, 255)
 
-font = pygame.font.SysFont('Time new roman', 30)
+font = pygame.font.SysFont('',30)
+
 
 
 def draw_text(text, font, text_color, x, y):
@@ -84,6 +87,7 @@ def draw_bg():
         screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
     for terrain in All_terrain:
         pygame.draw.rect(screen, White, pygame.Rect((terrain.x-camera_offsetX), (terrain.y-camera_offsetY), terrain.width, terrain.height))
+        
     #pygame.draw.rect(screen, White, ground_platform)
     #pygame.draw.rect(screen, (0,0,255), upper_platform)
     #pygame.draw.rect(screen, (0,255,0), second_platform)
