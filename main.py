@@ -3,7 +3,9 @@ import os
 
 import EnemyAI as AI
 import BombHandler as BH
+import Tutorial
 from enum import Enum
+
 
 #from pygame.sprite import _Group
 
@@ -13,7 +15,8 @@ pygame.init()
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.6)
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), depth=32)
 
 pygame.display.set_caption("Bullet Blitz")
 
@@ -72,7 +75,6 @@ White = (255, 255, 255)
 
 font = pygame.font.SysFont('',30)
 large_font = pygame.font.SysFont('',50)
-title_font = pygame.font.SysFont('',30)
 
 
 
@@ -80,7 +82,19 @@ def draw_text(text, font, text_color, x, y):
     img = font.render(text, True, text_color)
     screen.blit(img, (x, y))
 
+TextList = list()
+generaltextFile = open("gameText.txt", "r")
+for line in generaltextFile:
+    TextList.append(line)
+generaltextFile.close()
 
+def getTextFromFile(index):
+    if index == 0 or index == 1:
+        returnText = TextList[index]
+    else:
+        textIndex = index + selectedLanguage * 7
+        returnText = TextList[textIndex]
+    return returnText[:-1]
 
 Xsky = 0
 Xmountain = 0
@@ -122,31 +136,58 @@ def draw_menu():
     xPlacement = 410
     yPlacement = 480
     boxWidth = 280
+    boxHeight = 43
+    yIncrease = boxHeight + 15
+    textOffset = 5
 
-    for i in range(3):
+    for i in range(4):
         color = (0,0,0)
         if selectedMenuOption == i:
             color = (100,100,100)
             
-        pygame.draw.rect(screen, color, pygame.Rect(xPlacement, yPlacement+(70*i), boxWidth, 50))
+        pygame.draw.rect(screen, color, pygame.Rect(xPlacement, yPlacement+(yIncrease*i), boxWidth, boxHeight))
         if i == 2:
-            if selectedDiffuculty is not 1:
-                pygame.draw.polygon(screen, color, [(xPlacement-30, yPlacement+165),(xPlacement-10, yPlacement+140),(xPlacement-10, yPlacement+190)])
-            if selectedDiffuculty is not -1:
-                pygame.draw.polygon(screen, color, [(xPlacement+boxWidth+30, yPlacement+165),(xPlacement+boxWidth+10, yPlacement+140),(xPlacement+boxWidth+10, yPlacement+190)])
-
+            if selectedDiffuculty is not 2:
+                pygame.draw.polygon(screen, color, [(xPlacement-30, yPlacement+(yIncrease*2)+boxHeight/2), 
+                                                    (xPlacement-10, yPlacement+(yIncrease*2)),
+                                                    (xPlacement-10, yPlacement+(yIncrease*2)+boxHeight)])
+            if selectedDiffuculty is not 0:
+                pygame.draw.polygon(screen, color, [(xPlacement+boxWidth+30, yPlacement+(yIncrease*2)+boxHeight/2),
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*2)), 
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*2)+boxHeight)])
+        if i == 3:
+            if selectedLanguage is not 1:
+                pygame.draw.polygon(screen, color, [(xPlacement-30, yPlacement+(yIncrease*3)+boxHeight/2),
+                                                    (xPlacement-10, yPlacement+(yIncrease*3)), 
+                                                    (xPlacement-10, yPlacement+(yIncrease*3)+boxHeight)])
+            if selectedLanguage is not 0:
+                pygame.draw.polygon(screen, color, [(xPlacement+boxWidth+30, yPlacement+(yIncrease*3)+boxHeight/2),
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*3)), 
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*3)+boxHeight)])
+    
+    # draw text "start game" or "continue game"
     if gameStarted:
-        draw_text("Continue Game", large_font, (255,255,255), xPlacement+10, 490)
+        draw_text(getTextFromFile(4), large_font, (255,255,255), xPlacement+textOffset, yPlacement+textOffset)
     else:
-        draw_text("Play Game", large_font, (255,255,255), xPlacement+10, 490)
+        draw_text(getTextFromFile(3), large_font, (255,255,255), xPlacement+textOffset, yPlacement+textOffset)
 
-    draw_text("Tutorial", large_font, (255,255,255), xPlacement+10, 560)
+    # draw text tutorial
+    draw_text(getTextFromFile(5), large_font, (255,255,255), xPlacement+textOffset, yPlacement+yIncrease+textOffset)
+
+    # draw text regarding difficulty
     if selectedDiffuculty == 0:
-        draw_text("Normal Mode", large_font, (255,255,255), xPlacement+10, 630)
+        draw_text(getTextFromFile(6), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*2)+textOffset)
     elif selectedDiffuculty == 1:
-        draw_text("Hard Mode", large_font, (255,255,255), xPlacement+10, 630)
-    elif selectedDiffuculty == -1:
-        draw_text("Easy Mode", large_font, (255,255,255), xPlacement+10, 630)
+        draw_text(getTextFromFile(7), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*2)+textOffset)
+    elif selectedDiffuculty == 2:
+        draw_text(getTextFromFile(8), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*2)+textOffset)
+
+    # draw text regarding language
+    if selectedLanguage == 0:
+        draw_text(getTextFromFile(0), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*3)+textOffset)
+    elif selectedLanguage == 1:
+        draw_text(getTextFromFile(1), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*3)+textOffset)
+    
 
 def draw_bg():
     screen.fill(BG)
@@ -405,12 +446,6 @@ class State(Enum):
     GAME = 1
     TUTORIAL = 2
 
-class State_Menu(Enum):
-    PLAY = 0
-    TUTORIAL = 1
-    DIFFICULTY = 2
-    LANGUAGE = 3
-
 upper_platform = pygame.Rect(1000, 400, 150, 100)
 ground_platform = pygame.Rect((-100, LOWER_FLOOR-5), (SCREEN_WIDTH+100, 10))
 second_platform = pygame.Rect((700, 450), (300, 300))
@@ -441,6 +476,7 @@ enemy = Soldier('enemy', 450, 250, 3, 5, 20)
 
 bombHandler = BH.ChickenBombHandler()
 EnemyHandler = AI.EnemyHandler()
+TutorialPlayer = Tutorial.Tutorial(screen, camera_offsetY, camera_offsetY, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 bombHandler.setup(player, screen, EnemyHandler, All_terrain)
 
@@ -455,8 +491,25 @@ gunSound = pygame.mixer.Sound("click.wav")
 #Event handler
 running = True
 gameStarted = False
+
+# 0 = play game
+# 1 = play tutorial
+# 2 = select difficulty
+# 3 = select language
 selectedMenuOption = 0
-selectedDiffuculty = 0
+maxMenuOptionsIndex = 3
+
+# 0 = easy
+# 1 = normal
+# 2 = hard
+selectedDiffuculty = 1
+maxDifficultyIndex = 2
+
+# 0 = english
+# 1 = swedish
+selectedLanguage = 0
+maxLanguageIndex = 1
+
 gameState = State.MENU
 
 while running:
@@ -469,6 +522,7 @@ while running:
         draw_menu()
 
         startGame = False
+        startTutorial = False
 
         for event in pygame.event.get():
 
@@ -481,9 +535,13 @@ while running:
                 if event.key == pygame.K_a or event.key == pygame.K_LEFT:
                     if selectedMenuOption == 2:
                         selectedDiffuculty += 1
+                    if selectedMenuOption == 3:
+                        selectedLanguage += 1
                 if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
                     if selectedMenuOption == 2:
                         selectedDiffuculty -= 1
+                    if selectedMenuOption == 3:
+                        selectedLanguage -= 1
                 if event.key == pygame.K_w or event.key == pygame.K_UP:
                     selectedMenuOption -= 1
                 if event.key == pygame.K_s or event.key == pygame.K_DOWN:
@@ -491,20 +549,31 @@ while running:
                 if event.key == pygame.K_SPACE  or event.key == pygame.K_RETURN:
                     if selectedMenuOption == 0:
                         startGame = True
+                    if selectedMenuOption == 1:
+                        startTutorial = True
         
-        if (selectedMenuOption > 2):
-            selectedMenuOption = 2
+        if (selectedMenuOption > maxMenuOptionsIndex):
+            selectedMenuOption = maxMenuOptionsIndex
         if (selectedMenuOption < 0):
             selectedMenuOption = 0
 
-        if (selectedDiffuculty > 1):
-            selectedDiffuculty = 1
-        if (selectedDiffuculty < -1):
-            selectedDiffuculty = -1
+        if (selectedDiffuculty > maxDifficultyIndex):
+            selectedDiffuculty = maxDifficultyIndex
+        if (selectedDiffuculty < 0):
+            selectedDiffuculty = 0
+
+        if (selectedLanguage > maxLanguageIndex):
+            selectedLanguage = maxLanguageIndex
+        if (selectedLanguage < 0):
+            selectedLanguage = 0
 
         if startGame:
             gameState = State.GAME
             gameStarted = True
+
+        if startTutorial:
+            gameState = State.TUTORIAL
+            TutorialPlayer.startTutorial()
 
         pygame.display.update()
     elif gameState == State.GAME:
@@ -587,7 +656,25 @@ while running:
         # To update and call the image according to the rectangle  from the blit
         pygame.display.update()
     elif gameState == State.TUTORIAL:
-        pygame.display.update()        
+        clock.tick(FPS)
+        if(True): #disables the camera offset
+            camera_offsetX = 0
+            camera_offsetY = 0
+        draw_bg()
+
+        eventList = pygame.event.get()
+        for event in eventList:
+            if event.type == pygame.QUIT:
+                running = False
+
+        if running:
+            TutorialPlayer.updateTutorial(eventList, selectedLanguage)
+
+        if TutorialPlayer.TutorialEnd:
+            TutorialPlayer.resetTutorial()
+            gameState = State.MENU
+
+        pygame.display.update()
     else:
         running = False
     
