@@ -1,0 +1,16 @@
+English
+Svenska
+-
+Play Game
+Continue Game
+Tutorial
+Easy
+Normal
+Hard
+-
+Spela Spel
+Fortsatt Spel
+Handledning
+Enkel
+Normal
+Tufft

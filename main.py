@@ -3,6 +3,9 @@ import os
 
 import EnemyAI as AI
 import BombHandler as BH
+import Tutorial
+from enum import Enum
+
 
 #from pygame.sprite import _Group
 
@@ -12,7 +15,8 @@ pygame.init()
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.6)
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), depth=32)
 
 pygame.display.set_caption("Bullet Blitz")
 
@@ -24,11 +28,31 @@ FPS = 60
 #define game variables
 GRAVITY = 0.75
 LOWER_FLOOR = 500
+TILE_SIZE = 40
+TILE_TYPES = 21
+bg_scroll = 0
 
 # Define player actions variable
 move_left = False
 move_right = False
 shoot = False
+
+img_list = []
+for x in range(TILE_TYPES):
+	img = pygame.image.load(f'img/Tile/{x}.png')
+	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
+	img_list.append(img)
+
+#load images
+pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
+pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
+mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
+sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
+
+title_image = pygame.image.load('img/Title.png').convert_alpha()
+title_img = pygame.transform.scale(title_image, (int(title_image.get_width() * 1), int(title_image.get_height() * 1)))
+#store tiles in a list
+water_img = pygame.image.load('img/tile/0.png').convert_alpha()
 
 # Define bullet
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
@@ -37,12 +61,144 @@ bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 camera_offsetX = 0
 camera_offsetY = 0
 
+#pick up boxes
+health_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
+ammo_box_img = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
+item_boxes = {
+	'Health'	: health_box_img,
+	'Ammo'		: ammo_box_img,
+}
+
 # Define colours
-BG = (144, 201, 120)
+BG = (255, 201, 120)
 White = (255, 255, 255)
+
+font = pygame.font.SysFont('',30)
+large_font = pygame.font.SysFont('',50)
+
+
+
+def draw_text(text, font, text_color, x, y):
+    img = font.render(text, True, text_color)
+    screen.blit(img, (x, y))
+
+TextList = list()
+generaltextFile = open("gameText.txt", "r")
+for line in generaltextFile:
+    TextList.append(line)
+generaltextFile.close()
+
+def getTextFromFile(index):
+    if index == 0 or index == 1:
+        returnText = TextList[index]
+    else:
+        textIndex = index + selectedLanguage * 7
+        returnText = TextList[textIndex]
+    return returnText[:-1]
+
+Xsky = 0
+Xmountain = 0
+Xpine1 = 0
+Xpine2 = 0
+
+def draw_menu_bg():
+    screen.fill(BG)
+    width = sky_img.get_width()
+    
+    increase = 2
+    global Xsky, Xmountain, Xpine1, Xpine2
+
+    Xsky += increase
+    Xmountain += increase
+    Xpine1 += increase
+    Xpine2 += increase
+
+    if Xsky > width * 2:
+        Xsky = 0
+    if Xmountain > width * (1/0.6):
+        Xmountain = 0
+    if Xpine1 > width * (1/0.7):
+        Xpine1 = 0
+    if Xpine2 > width * 1.25:
+        Xpine2 = 0
+
+    for x in range(4):
+        screen.blit(sky_img, ((x * width) - Xsky * 0.5, 0))
+    for x in range(4):
+        screen.blit(mountain_img, ((x * width) - Xmountain * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
+    for x in range(4):
+        screen.blit(pine1_img, ((x * width) - Xpine1 * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
+    for x in range(4):
+        screen.blit(pine2_img, ((x * width) - Xpine2 * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+    screen.blit(title_img, (50, 0))
+
+def draw_menu():
+    xPlacement = 410
+    yPlacement = 480
+    boxWidth = 280
+    boxHeight = 43
+    yIncrease = boxHeight + 15
+    textOffset = 5
+
+    for i in range(4):
+        color = (0,0,0)
+        if selectedMenuOption == i:
+            color = (100,100,100)
+            
+        pygame.draw.rect(screen, color, pygame.Rect(xPlacement, yPlacement+(yIncrease*i), boxWidth, boxHeight))
+        if i == 2:
+            if selectedDiffuculty is not 2:
+                pygame.draw.polygon(screen, color, [(xPlacement-30, yPlacement+(yIncrease*2)+boxHeight/2), 
+                                                    (xPlacement-10, yPlacement+(yIncrease*2)),
+                                                    (xPlacement-10, yPlacement+(yIncrease*2)+boxHeight)])
+            if selectedDiffuculty is not 0:
+                pygame.draw.polygon(screen, color, [(xPlacement+boxWidth+30, yPlacement+(yIncrease*2)+boxHeight/2),
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*2)), 
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*2)+boxHeight)])
+        if i == 3:
+            if selectedLanguage is not 1:
+                pygame.draw.polygon(screen, color, [(xPlacement-30, yPlacement+(yIncrease*3)+boxHeight/2),
+                                                    (xPlacement-10, yPlacement+(yIncrease*3)), 
+                                                    (xPlacement-10, yPlacement+(yIncrease*3)+boxHeight)])
+            if selectedLanguage is not 0:
+                pygame.draw.polygon(screen, color, [(xPlacement+boxWidth+30, yPlacement+(yIncrease*3)+boxHeight/2),
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*3)), 
+                                                    (xPlacement+boxWidth+10, yPlacement+(yIncrease*3)+boxHeight)])
+    
+    # draw text "start game" or "continue game"
+    if gameStarted:
+        draw_text(getTextFromFile(4), large_font, (255,255,255), xPlacement+textOffset, yPlacement+textOffset)
+    else:
+        draw_text(getTextFromFile(3), large_font, (255,255,255), xPlacement+textOffset, yPlacement+textOffset)
+
+    # draw text tutorial
+    draw_text(getTextFromFile(5), large_font, (255,255,255), xPlacement+textOffset, yPlacement+yIncrease+textOffset)
+
+    # draw text regarding difficulty
+    if selectedDiffuculty == 0:
+        draw_text(getTextFromFile(6), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*2)+textOffset)
+    elif selectedDiffuculty == 1:
+        draw_text(getTextFromFile(7), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*2)+textOffset)
+    elif selectedDiffuculty == 2:
+        draw_text(getTextFromFile(8), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*2)+textOffset)
+
+    # draw text regarding language
+    if selectedLanguage == 0:
+        draw_text(getTextFromFile(0), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*3)+textOffset)
+    elif selectedLanguage == 1:
+        draw_text(getTextFromFile(1), large_font, (255,255,255), xPlacement+textOffset, yPlacement+(yIncrease*3)+textOffset)
+    
 
 def draw_bg():
     screen.fill(BG)
+    width = sky_img.get_width()
+    for x in range(5):
+        screen.blit(sky_img, ((x * width) - camera_offsetX * 0.5, 0))
+        screen.blit(mountain_img, ((x * width) - camera_offsetX * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
+        screen.blit(pine1_img, ((x * width) - camera_offsetX * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
+        screen.blit(pine2_img, ((x * width) - camera_offsetX * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+
+def draw_terrain():
     for terrain in All_terrain:
         pygame.draw.rect(screen, White, pygame.Rect((terrain.x-camera_offsetX), (terrain.y-camera_offsetY), terrain.width, terrain.height))
     #pygame.draw.rect(screen, White, ground_platform)
@@ -173,6 +329,7 @@ class Soldier(pygame.sprite.Sprite):
 
      def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
+            gunSound.play()
             self.shoot_cooldown = 20 # Reload number, lower number faster speed
             bullet = Bullet(self.rect.centerx + (0.6* self.rect.size[0]* self.direction), self.rect.centery, self.direction)
             bullet_group.add(bullet)
@@ -224,6 +381,30 @@ class Soldier(pygame.sprite.Sprite):
          screen.blit(pygame.transform.flip(self.image, self.flip, False),
                          pygame.Rect((self.rect.x-camera_offsetX), (self.rect.y-camera_offsetY), self.rect.width, self.rect.height)) 
          #screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect) 
+         
+
+
+class ItemBox(pygame.sprite.Sprite):
+	def __init__(self, item_type, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		self.item_type = item_type
+		self.image = item_boxes[self.item_type]
+		self.rect = self.image.get_rect()
+		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+	def update(self):
+        # Check  collision 
+		
+		if pygame.sprite.collide_rect(self, player):
+			#check what kind of box it was
+			if self.item_type == 'Health':
+				player.health += 25
+				if player.health > player.max_health:
+					player.health = player.max_health
+			elif self.item_type == 'Ammo':
+				player.ammo += 15
+			self.kill()
+
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
@@ -260,11 +441,12 @@ class Bullet(pygame.sprite.Sprite):
     #def draw(self, surface):
     #    surface.blit(self.image, pygame.Rect((self.rect.x-camera_offsetX), (self.rect.y-camera_offsetY), self.rect.width, self.rect.height)) 
         
+class State(Enum):
+    MENU = 0
+    GAME = 1
+    TUTORIAL = 2
 
-
-
-
-upper_platform = pygame.Rect(1000, 300, 150, 300)
+upper_platform = pygame.Rect(1000, 400, 150, 100)
 ground_platform = pygame.Rect((-100, LOWER_FLOOR-5), (SCREEN_WIDTH+100, 10))
 second_platform = pygame.Rect((700, 450), (300, 300))
 
@@ -272,6 +454,16 @@ All_terrain = [upper_platform, ground_platform, second_platform]
 
 # Create a group for bullte 
 bullet_group = pygame.sprite.Group()
+item_box_group = pygame.sprite.Group()
+
+
+item_box = ItemBox('Health', 100,450 )
+item_box_group.add(item_box)
+item_box = ItemBox('Ammo', 400, 450)
+item_box_group.add(item_box)
+
+
+
 
 #Creating instances with the given x,y and size co ordinates
 player = Soldier('player', 500, 450, 3, 5, 20)
@@ -284,81 +476,208 @@ enemy = Soldier('enemy', 450, 250, 3, 5, 20)
 
 bombHandler = BH.ChickenBombHandler()
 EnemyHandler = AI.EnemyHandler()
+TutorialPlayer = Tutorial.Tutorial(screen, camera_offsetY, camera_offsetY, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 bombHandler.setup(player, screen, EnemyHandler, All_terrain)
 
 EnemyHandler.setup(player, screen, All_terrain)
 EnemyHandler.addEnemyToList(enemy)
 
+background_size = 1376 * 2 
+
+pygame.mixer.init()
+gunSound = pygame.mixer.Sound("click.wav")
+
 #Event handler
 running = True
+gameStarted = False
+
+# 0 = play game
+# 1 = play tutorial
+# 2 = select difficulty
+# 3 = select language
+selectedMenuOption = 0
+maxMenuOptionsIndex = 3
+
+# 0 = easy
+# 1 = normal
+# 2 = hard
+selectedDiffuculty = 1
+maxDifficultyIndex = 2
+
+# 0 = english
+# 1 = swedish
+selectedLanguage = 0
+maxLanguageIndex = 1
+
+gameState = State.MENU
+
 while running:
 
-    if(False): #disables the camera offset
-        camera_offsetX = 0
-    camera_offsetY = 0
+    if gameState == State.MENU:
+        #tick camera offset to have scrolling background
+        clock.tick(FPS)
 
-    clock.tick(FPS)
-    draw_bg()
-    player.update()
-    player.draw() 
+        draw_menu_bg()
+        draw_menu()
+
+        startGame = False
+        startTutorial = False
+
+        for event in pygame.event.get():
+
+            # To quit game
+            if event.type == pygame.QUIT:
+                running = False
+
+            # Event handler for Keyboard controls  
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a or event.key == pygame.K_LEFT:
+                    if selectedMenuOption == 2:
+                        selectedDiffuculty += 1
+                    if selectedMenuOption == 3:
+                        selectedLanguage += 1
+                if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
+                    if selectedMenuOption == 2:
+                        selectedDiffuculty -= 1
+                    if selectedMenuOption == 3:
+                        selectedLanguage -= 1
+                if event.key == pygame.K_w or event.key == pygame.K_UP:
+                    selectedMenuOption -= 1
+                if event.key == pygame.K_s or event.key == pygame.K_DOWN:
+                    selectedMenuOption += 1
+                if event.key == pygame.K_SPACE  or event.key == pygame.K_RETURN:
+                    if selectedMenuOption == 0:
+                        startGame = True
+                    if selectedMenuOption == 1:
+                        startTutorial = True
+        
+        if (selectedMenuOption > maxMenuOptionsIndex):
+            selectedMenuOption = maxMenuOptionsIndex
+        if (selectedMenuOption < 0):
+            selectedMenuOption = 0
+
+        if (selectedDiffuculty > maxDifficultyIndex):
+            selectedDiffuculty = maxDifficultyIndex
+        if (selectedDiffuculty < 0):
+            selectedDiffuculty = 0
+
+        if (selectedLanguage > maxLanguageIndex):
+            selectedLanguage = maxLanguageIndex
+        if (selectedLanguage < 0):
+            selectedLanguage = 0
+
+        if startGame:
+            gameState = State.GAME
+            gameStarted = True
+
+        if startTutorial:
+            gameState = State.TUTORIAL
+            TutorialPlayer.startTutorial()
+
+        pygame.display.update()
+    elif gameState == State.GAME:
+        if(False): #disables the camera offset
+            camera_offsetX = 0
+        camera_offsetY = 0
+
+        clock.tick(FPS)
+        draw_bg()
+        draw_terrain()
+        draw_text(f'AMMO:{player.ammo}',font,White, 15, 20)
+        draw_text(f'HEALTH:{player.health}',font,White, 15, 50)
+
+        player.update()
+        player.draw() 
+        
+        EnemyHandler.update()
+
+        bombHandler.update(camera_offsetX, camera_offsetY)
+        
+        bullet_group.update()
+        # have to blit and not call ".draw" of group as camera offset doesn't work.
+        for spr in bullet_group.sprites():
+            bullet_group.spritedict[spr] = screen.blit(spr.image, pygame.Rect((spr.rect.x-camera_offsetX), (spr.rect.y-camera_offsetY), spr.rect.width, spr.rect.height))
+
+        item_box_group.update()
+        # have to blit and not call ".draw" of group as camera offset doesn't work.
+        for spr in item_box_group.sprites():
+            item_box_group.spritedict[spr] = screen.blit(spr.image, pygame.Rect((spr.rect.x-camera_offsetX), (spr.rect.y-camera_offsetY), spr.rect.width, spr.rect.height))
+        #item_box_group.draw(screen)
+        
+
+
+
+        if player.alive:
+            if shoot:
+                player.shoot()
+            if player.in_air:
+                player.update_action(2)#2: jump
+            elif move_left or move_right:
+                player.update_action(1)#1: run
+            else:
+                player.update_action(0)#0: idle
+            player.movement(move_left, move_right)
+
+
+        
+        for event in pygame.event.get():
+
+            # To quit game
+            if event.type == pygame.QUIT:
+                running = False
+
+            # Event handler for Keyboard controls  
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE: # keyboard button a is set for the left movemen
+                    gameState = State.MENU
+                if event.key == pygame.K_a: # keyboard button a is set for the left movemen
+                    move_left = True    
+                if event.key == pygame.K_d: # keyboard button b is set for the right movemen
+                    move_right  = True 
+                if event.key == pygame.K_SPACE: # keyboard button SPACE is set for shooting
+                    shoot  = True    
+                if event.key == pygame.K_w and player.alive:
+                    player.jump = True
+                if event.key == pygame.K_b:
+                    bombHandler.spawn_chicken_bomb(player)
+
+            # Set a release mode
+            if event.type == pygame.KEYUP:
+                if event.key == pygame.K_a:
+                    move_left = False    
+                if event.key == pygame.K_d: 
+                    move_right = False    
+                if event.key == pygame.K_SPACE: 
+                    shoot = False  
+                if event.key == pygame.K_ESCAPE : # set a button for esc button
+                    run = False 
     
-    EnemyHandler.update()
+        # To update and call the image according to the rectangle  from the blit
+        pygame.display.update()
+    elif gameState == State.TUTORIAL:
+        clock.tick(FPS)
+        if(True): #disables the camera offset
+            camera_offsetX = 0
+            camera_offsetY = 0
+        draw_bg()
 
-    bombHandler.update(camera_offsetX, camera_offsetY)
+        eventList = pygame.event.get()
+        for event in eventList:
+            if event.type == pygame.QUIT:
+                running = False
+
+        if running:
+            TutorialPlayer.updateTutorial(eventList, selectedLanguage)
+
+        if TutorialPlayer.TutorialEnd:
+            TutorialPlayer.resetTutorial()
+            gameState = State.MENU
+
+        pygame.display.update()
+    else:
+        running = False
     
-    bullet_group.update()
-    # have to blit and not call ".draw" of group as camera offset doesn't work.
-    for spr in bullet_group.sprites():
-        bullet_group.spritedict[spr] = screen.blit(spr.image, pygame.Rect((spr.rect.x-camera_offsetX), (spr.rect.y-camera_offsetY), spr.rect.width, spr.rect.height))
-
-    #bullet_group.draw(screen)
-
-    if player.alive:
-        if shoot:
-            player.shoot()
-        if player.in_air:
-            player.update_action(2)#2: jump
-        elif move_left or move_right:
-            player.update_action(1)#1: run
-        else:
-            player.update_action(0)#0: idle
-        player.movement(move_left, move_right)
-
-
-     
-    for event in pygame.event.get():
-
-        # To quit game
-        if event.type == pygame.QUIT:
-            running = False
-
-         # Event handler for Keyboard controls  
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a: # keyboard button a is set for the left movemen
-                move_left = True    
-            if event.key == pygame.K_d: # keyboard button b is set for the right movemen
-                move_right  = True 
-            if event.key == pygame.K_SPACE: # keyboard button SPACE is set for shooting
-                shoot  = True    
-            if event.key == pygame.K_w and player.alive:
-                player.jump = True
-            if event.key == pygame.K_b:
-                bombHandler.spawn_chicken_bomb(player)
-
-         # Set a release mode
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_a:
-                move_left = False    
-            if event.key == pygame.K_d: 
-                move_right = False    
-            if event.key == pygame.K_SPACE: 
-                shoot = False  
-            if event.key == pygame.K_ESCAPE : # set a button for esc button
-                run = False 
- 
-    # To update and call the image according to the rectangle  from the blit
-    pygame.display.update()        
 
 pygame.quit()
 
