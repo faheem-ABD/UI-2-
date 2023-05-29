@@ -1,0 +1,10 @@
+ENG
+TUTORIAL PAUSED
+Continue Tutorial
+End Tutorial
+
+SWE
+HANDLEDNING PAUSAD
+Fortsatt Handledning
+Avsluta Handledning
+
