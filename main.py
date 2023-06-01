@@ -324,11 +324,11 @@ class Soldier(pygame.sprite.Sprite):
          self.rect.center = (x ,y)
          
          # initialize and sets the sensors for the characters
-         self.left_sensor = pygame.Rect(x,y,10,100)
+         self.left_sensor = pygame.Rect(x,y, 10, self.rect.height-8)
          self.left_sensor.center = self.rect.midleft
-         self.right_sensor = pygame.Rect(x,y,10,100)
+         self.right_sensor = pygame.Rect(x,y, 10, self.rect.height-8)
          self.right_sensor.center = (self.rect.right-20, self.rect.centery)
-         self.bottom_sensor = pygame.Rect(self.rect.left+5,self.rect.bottom-5,75,10)
+         self.bottom_sensor = pygame.Rect(self.rect.left+5, self.rect.bottom-5, self.rect.width-30, 10)
 
          # These instances are like blue prints,
          #  we can create as many as we want for the various actions
@@ -401,7 +401,7 @@ class Soldier(pygame.sprite.Sprite):
          self.bottom_sensor.x += dx
          self.bottom_sensor.y += dy
 
-         if self.char_type == 'player':
+         if self.char_type == 'player' or self.char_type == 'player2':
             global camera_offsetX, camera_offsetY
             camera_offsetX += dx
             camera_offsetY += dy
@@ -547,8 +547,8 @@ item_box_group.add(item_box)
 
 
 #Creating instances with the given x,y and size co ordinates
-player = Soldier('player', 1100, 450, 3, 5, 20)
-enemy = Soldier('enemy', 1050, 250, 3, 5, 20)
+player = Soldier('player2', 1100, 450, 3, 5, 20)
+enemy = Soldier('enemy2', 1050, 250, 3, 5, 20)
  
 # player2 = Soldier(400, 200, 3) #since we have created instances, just need to specify the co ordinates
 #x = 200        

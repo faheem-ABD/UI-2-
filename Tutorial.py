@@ -29,7 +29,7 @@ class Tutorial():
         self.TutorialPaused = False
         self.TutorialEnd = False
         self.selectedMenuOption = 0
-        self.TuturialInternalClock = 2155
+        self.TuturialInternalClock = 0
         self.TuturialInternalClockCount = True
         self.controlsDisabled = True
         self.jumpDisabled = True
