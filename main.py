@@ -374,6 +374,7 @@ class Soldier(pygame.sprite.Sprite):
 
          # Jump
          if self.jump == True and self.in_air == False:
+            jumpSound.play()
             self.vel_y = -12
             self.jump = False
             self.in_air = True
@@ -568,6 +569,7 @@ background_size = 1376 * 2
 
 pygame.mixer.init()
 gunSound = pygame.mixer.Sound("click.wav")
+jumpSound = pygame.mixer.Sound("jump_sound.wav")
 
 #Event handler
 running = True
@@ -657,7 +659,7 @@ while running:
         if startTutorial:
             nextGameState = State.TUTORIAL
             currentGameState = State.TRANSITION
-            TutorialCharacter = Soldier('player', SCREEN_WIDTH/2, -100, 3, 5, 20)
+            TutorialCharacter = Soldier('player2', SCREEN_WIDTH/2, -100, 3, 5, 20)
             TutorialPlayer.startTutorial(TutorialCharacter, camera_offsetX, camera_offsetY)
 
         pygame.display.update()
