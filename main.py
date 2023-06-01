@@ -5,6 +5,8 @@ import EnemyAI as AI
 import BombHandler as BH
 import Tutorial
 from enum import Enum
+import codecs
+import math
 
 
 #from pygame.sprite import _Group
@@ -28,7 +30,7 @@ FPS = 60
 #define game variables
 GRAVITY = 0.75
 LOWER_FLOOR = 500
-TILE_SIZE = 40
+TILE_SIZE = 64#40
 TILE_TYPES = 21
 bg_scroll = 0
 
@@ -49,7 +51,7 @@ pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
 mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
 sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
 
-title_image = pygame.image.load('img/Title.png').convert_alpha()
+title_image = pygame.image.load('img/Title2.png').convert_alpha()
 title_img = pygame.transform.scale(title_image, (int(title_image.get_width() * 1), int(title_image.get_height() * 1)))
 #store tiles in a list
 water_img = pygame.image.load('img/tile/0.png').convert_alpha()
@@ -58,8 +60,8 @@ water_img = pygame.image.load('img/tile/0.png').convert_alpha()
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
 
 #define camera offset
-camera_offsetX = 0
-camera_offsetY = 0
+camera_offsetX = 600
+camera_offsetY = 600
 
 #pick up boxes
 health_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
@@ -83,7 +85,8 @@ def draw_text(text, font, text_color, x, y):
     screen.blit(img, (x, y))
 
 TextList = list()
-generaltextFile = open("gameText.txt", "r")
+generaltextFile = codecs.open("gameText.txt", "r", encoding='utf-8')
+#generaltextFile = open("gameText.txt", "r")
 for line in generaltextFile:
     TextList.append(line)
 generaltextFile.close()
@@ -92,9 +95,9 @@ def getTextFromFile(index):
     if index == 0 or index == 1:
         returnText = TextList[index]
     else:
-        textIndex = index + selectedLanguage * 7
+        textIndex = index + selectedLanguage * 9
         returnText = TextList[textIndex]
-    return returnText[:-1]
+    return returnText[:-2]
 
 Xsky = 0
 Xmountain = 0
@@ -200,10 +203,84 @@ def draw_bg():
 
 def draw_terrain():
     for terrain in All_terrain:
-        pygame.draw.rect(screen, White, pygame.Rect((terrain.x-camera_offsetX), (terrain.y-camera_offsetY), terrain.width, terrain.height))
+        drawTerrainForRect(terrain, True)
+
+        #pygame.draw.rect(screen, White, pygame.Rect((terrain.x-camera_offsetX), (terrain.y-camera_offsetY), terrain.width, terrain.height))
     #pygame.draw.rect(screen, White, ground_platform)
     #pygame.draw.rect(screen, (0,0,255), upper_platform)
     #pygame.draw.rect(screen, (0,255,0), second_platform)
+
+
+
+def drawTerrainForRect(rect, withEdge):
+    height = img_list[0].get_height()
+    width = img_list[0].get_width()
+    amount_height = math.ceil(rect.height / height)
+    amount_width = math.ceil(rect.width / width)
+        
+    StartX = rect.x
+    StartY = rect.y
+    if withEdge:
+        for x in range(1, amount_width-1):
+            screen.blit(img_list[0], (StartX + x*width - camera_offsetX, 
+                                      StartY - camera_offsetY))
+            for y in range(1, amount_height):
+                screen.blit(img_list[4], (StartX + x*width - camera_offsetX, 
+                                          StartY + y*height - camera_offsetY))
+        screen.blit(img_list[1], (StartX - camera_offsetX, 
+                                  StartY - camera_offsetY))
+        screen.blit(img_list[2], (StartX + (amount_width-1)*width - camera_offsetX, 
+                                  StartY - camera_offsetY))
+        for y in range(1, amount_height):
+            screen.blit(img_list[3], (StartX - camera_offsetX, 
+                                      StartY + y * height - camera_offsetY))
+            screen.blit(img_list[5], (StartX + (amount_width-1)*width - camera_offsetX, 
+                                      StartY + y * height - camera_offsetY))
+    else:
+        for x in range(amount_width):
+            screen.blit(img_list[0], (StartX + x*width - camera_offsetX, 
+                                      StartY - camera_offsetY))
+            for y in range(1, amount_height):
+                screen.blit(img_list[4], (StartX + x*width - camera_offsetX, 
+                                          StartY + y*height - camera_offsetY))
+
+transitionTimer = 0
+def black_Transition():
+    global transitionTimer, currentGameState, nextGameState, camera_offsetX, camera_offsetY
+    transitionTimerMax = 120
+    middlePotionHalf = 2
+
+    transitionTimer += 1
+
+    blackBackground = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    blackBackground.fill((0,0,0))
+    alpha = 255
+    firstHalf = (transitionTimerMax/2-middlePotionHalf)
+    secondHalf = (transitionTimerMax/2+middlePotionHalf)
+    if transitionTimer < firstHalf:
+        alpha = (transitionTimer/firstHalf)*255
+    elif transitionTimer > secondHalf:
+        if nextGameState == State.MENU:
+            draw_menu_bg()
+            draw_menu()
+        elif  nextGameState == State.TUTORIAL:
+            camera_offsetX = 0
+            camera_offsetY = 0
+            draw_bg()
+            TutorialPlayer.updateTutorialTerrain()
+        else:
+            transitionTimer = transitionTimerMax+1
+        alpha = ((transitionTimerMax-transitionTimer)/secondHalf)*255
+    else:
+        screen.fill((0,0,0))
+    blackBackground.set_alpha(alpha)
+    screen.blit(blackBackground, (0,0))
+
+    if transitionTimer > transitionTimerMax:
+        currentGameState = nextGameState
+        transitionTimer = 0
+
+
 
 class Soldier(pygame.sprite.Sprite):
      def __init__(self , char_type, x, y , scale, speed, ammo):  # Creating instance for the movement of characters of sprites 
@@ -247,11 +324,11 @@ class Soldier(pygame.sprite.Sprite):
          self.rect.center = (x ,y)
          
          # initialize and sets the sensors for the characters
-         self.left_sensor = pygame.Rect(x,y,10,100)
+         self.left_sensor = pygame.Rect(x,y, 10, self.rect.height-8)
          self.left_sensor.center = self.rect.midleft
-         self.right_sensor = pygame.Rect(x,y,10,100)
+         self.right_sensor = pygame.Rect(x,y, 10, self.rect.height-8)
          self.right_sensor.center = (self.rect.right-20, self.rect.centery)
-         self.bottom_sensor = pygame.Rect(self.rect.left+5,self.rect.bottom-5,75,10)
+         self.bottom_sensor = pygame.Rect(self.rect.left+5, self.rect.bottom-5, self.rect.width-30, 10)
 
          # These instances are like blue prints,
          #  we can create as many as we want for the various actions
@@ -262,8 +339,10 @@ class Soldier(pygame.sprite.Sprite):
          if self.shoot_cooldown > 0:
              self.shoot_cooldown -= 1
 
-
      def movement(self, move_left, move_right): # Create variables for the movements
+         self.movementBase(move_left, move_right, All_terrain)
+
+     def movementBase(self, move_left, move_right, terrainList): # Create variables for the movements
          #set movement variables
          dx = 0
          dy = 0
@@ -274,19 +353,19 @@ class Soldier(pygame.sprite.Sprite):
             dx = -self.speed
             self.flip = True
             self.direction = -1
-            if pygame.Rect.collidelist(self.left_sensor, All_terrain) > -1:
+            if pygame.Rect.collidelist(self.left_sensor, terrainList) > -1:
                 dx = 0
          if move_right:
              self.flip = False
              self.direction = 1
              dx = self.speed
-             if pygame.Rect.collidelist(self.right_sensor, All_terrain) > -1:
+             if pygame.Rect.collidelist(self.right_sensor, terrainList) > -1:
                 dx = 0
         
          # checks if the player have collision downwards and set the vairable "self.in_air" accorddingly
-         terrain_index = pygame.Rect.collidelist(self.bottom_sensor, All_terrain)
+         terrain_index = pygame.Rect.collidelist(self.bottom_sensor, terrainList)
          if terrain_index > -1:
-            terrain = All_terrain[terrain_index]
+            terrain = terrainList[terrain_index]
             dy = terrain.top - self.rect.bottom
             self.in_air = False
             self.vel_y = 0
@@ -295,7 +374,7 @@ class Soldier(pygame.sprite.Sprite):
 
          # Jump
          if self.jump == True and self.in_air == False:
-            self.vel_y = -11
+            self.vel_y = -12
             self.jump = False
             self.in_air = True
         
@@ -322,7 +401,7 @@ class Soldier(pygame.sprite.Sprite):
          self.bottom_sensor.x += dx
          self.bottom_sensor.y += dy
 
-         if self.char_type == 'player':
+         if self.char_type == 'player' or self.char_type == 'player2':
             global camera_offsetX, camera_offsetY
             camera_offsetX += dx
             camera_offsetY += dy
@@ -370,13 +449,13 @@ class Soldier(pygame.sprite.Sprite):
           #Blit function copies image from the surface to the screen 
           # using Object Oriented Programmingm
 
-          # tests - used to visualize the indicators of the soldiers (inlc. the player)
-         #pygame.draw.rect(screen, (0,0,0), pygame.Rect((self.right_indicator.x-camera_offsetX), (self.right_indicator.y-camera_offsetY), self.right_indicator.width, self.right_indicator.height))
-         #pygame.draw.rect(screen, (0,0,100), pygame.Rect((self.left_indicator.x-camera_offsetX), (self.left_indicator.y-camera_offsetY), self.left_indicator.width, self.left_indicator.height))
-         #pygame.draw.rect(screen, (0,0,200), pygame.Rect((self.bottom_indicator.x-camera_offsetX), (self.bottom_indicator.y-camera_offsetY), self.bottom_indicator.width, self.bottom_indicator.height))
-         #pygame.draw.rect(screen, (0,0,0), self.right_indicator)
-         #pygame.draw.rect(screen, (0,0,100), self.left_indicator)
-         #pygame.draw.rect(screen, (0,0,200), self.bottom_indicator)
+          # tests - used to visualize the sensor of the soldiers (inlc. the player)
+         #pygame.draw.rect(screen, (0,0,0), pygame.Rect((self.right_sensor.x-camera_offsetX), (self.right_sensor.y-camera_offsetY), self.right_sensor.width, self.right_sensor.height))
+         #pygame.draw.rect(screen, (0,0,100), pygame.Rect((self.left_sensor.x-camera_offsetX), (self.left_sensor.y-camera_offsetY), self.left_sensor.width, self.left_sensor.height))
+         #pygame.draw.rect(screen, (0,0,200), pygame.Rect((self.bottom_sensor.x-camera_offsetX), (self.bottom_sensor.y-camera_offsetY), self.bottom_sensor.width, self.bottom_sensor.height))
+         #pygame.draw.rect(screen, (0,0,0), self.right_sensor)
+         #pygame.draw.rect(screen, (0,0,100), self.left_sensor)
+         #pygame.draw.rect(screen, (0,0,200), self.bottom_sensor)
          
          screen.blit(pygame.transform.flip(self.image, self.flip, False),
                          pygame.Rect((self.rect.x-camera_offsetX), (self.rect.y-camera_offsetY), self.rect.width, self.rect.height)) 
@@ -445,29 +524,31 @@ class State(Enum):
     MENU = 0
     GAME = 1
     TUTORIAL = 2
+    TRANSITION = 3
 
-upper_platform = pygame.Rect(1000, 400, 150, 100)
-ground_platform = pygame.Rect((-100, LOWER_FLOOR-5), (SCREEN_WIDTH+100, 10))
-second_platform = pygame.Rect((700, 450), (300, 300))
+upper_platform = pygame.Rect(1600, 400, 192, SCREEN_HEIGHT-400)
+ground_platform = pygame.Rect((-100, LOWER_FLOOR), (SCREEN_WIDTH*3, SCREEN_HEIGHT-400))
+second_platform = pygame.Rect((1300, 450), (640, SCREEN_HEIGHT-400))
+right_wall = pygame.Rect((0, 200), (576, SCREEN_HEIGHT-400))
 
-All_terrain = [upper_platform, ground_platform, second_platform]
+All_terrain = [upper_platform, second_platform, right_wall, ground_platform]
 
 # Create a group for bullte 
 bullet_group = pygame.sprite.Group()
 item_box_group = pygame.sprite.Group()
 
 
-item_box = ItemBox('Health', 100,450 )
+item_box = ItemBox('Health', 800, 435)
 item_box_group.add(item_box)
-item_box = ItemBox('Ammo', 400, 450)
+item_box = ItemBox('Ammo', 700, 435)
 item_box_group.add(item_box)
 
 
 
 
 #Creating instances with the given x,y and size co ordinates
-player = Soldier('player', 500, 450, 3, 5, 20)
-enemy = Soldier('enemy', 450, 250, 3, 5, 20)
+player = Soldier('player2', 1100, 450, 3, 5, 20)
+enemy = Soldier('enemy2', 1050, 250, 3, 5, 20)
  
 # player2 = Soldier(400, 200, 3) #since we have created instances, just need to specify the co ordinates
 #x = 200        
@@ -476,7 +557,7 @@ enemy = Soldier('enemy', 450, 250, 3, 5, 20)
 
 bombHandler = BH.ChickenBombHandler()
 EnemyHandler = AI.EnemyHandler()
-TutorialPlayer = Tutorial.Tutorial(screen, camera_offsetY, camera_offsetY, SCREEN_WIDTH, SCREEN_HEIGHT)
+TutorialPlayer = Tutorial.Tutorial(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 bombHandler.setup(player, screen, EnemyHandler, All_terrain)
 
@@ -510,11 +591,12 @@ maxDifficultyIndex = 2
 selectedLanguage = 0
 maxLanguageIndex = 1
 
-gameState = State.MENU
+currentGameState = State.MENU
+nextGameState = State.MENU
 
 while running:
 
-    if gameState == State.MENU:
+    if currentGameState == State.MENU:
         #tick camera offset to have scrolling background
         clock.tick(FPS)
 
@@ -568,15 +650,18 @@ while running:
             selectedLanguage = 0
 
         if startGame:
-            gameState = State.GAME
+            nextGameState = State.GAME
+            currentGameState = State.TRANSITION
             gameStarted = True
 
         if startTutorial:
-            gameState = State.TUTORIAL
-            TutorialPlayer.startTutorial()
+            nextGameState = State.TUTORIAL
+            currentGameState = State.TRANSITION
+            TutorialCharacter = Soldier('player2', SCREEN_WIDTH/2, -100, 3, 5, 20)
+            TutorialPlayer.startTutorial(TutorialCharacter, camera_offsetX, camera_offsetY)
 
         pygame.display.update()
-    elif gameState == State.GAME:
+    elif currentGameState == State.GAME:
         if(False): #disables the camera offset
             camera_offsetX = 0
         camera_offsetY = 0
@@ -584,8 +669,8 @@ while running:
         clock.tick(FPS)
         draw_bg()
         draw_terrain()
-        draw_text(f'AMMO:{player.ammo}',font,White, 15, 20)
-        draw_text(f'HEALTH:{player.health}',font,White, 15, 50)
+        draw_text(f'{getTextFromFile(9)}:{player.ammo}',font,White, 15, 20)
+        draw_text(f'{getTextFromFile(10)}:{player.health}',font,White, 15, 50)
 
         player.update()
         player.draw() 
@@ -630,7 +715,8 @@ while running:
             # Event handler for Keyboard controls  
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE: # keyboard button a is set for the left movemen
-                    gameState = State.MENU
+                    nextGameState = State.MENU
+                    currentGameState = State.TRANSITION
                 if event.key == pygame.K_a: # keyboard button a is set for the left movemen
                     move_left = True    
                 if event.key == pygame.K_d: # keyboard button b is set for the right movemen
@@ -655,11 +741,13 @@ while running:
     
         # To update and call the image according to the rectangle  from the blit
         pygame.display.update()
-    elif gameState == State.TUTORIAL:
+    elif currentGameState == State.TUTORIAL:
         clock.tick(FPS)
+
         if(True): #disables the camera offset
             camera_offsetX = 0
             camera_offsetY = 0
+        
         draw_bg()
 
         eventList = pygame.event.get()
@@ -671,9 +759,22 @@ while running:
             TutorialPlayer.updateTutorial(eventList, selectedLanguage)
 
         if TutorialPlayer.TutorialEnd:
-            TutorialPlayer.resetTutorial()
-            gameState = State.MENU
+            (camera_offsetX, camera_offsetY) = TutorialPlayer.resetTutorial()
 
+            nextGameState = State.MENU
+            currentGameState = State.TRANSITION
+
+        pygame.display.update()
+    elif currentGameState == State.TRANSITION:
+        clock.tick(FPS)
+
+        eventList = pygame.event.get()
+        for event in eventList:
+            if event.type == pygame.QUIT:
+                running = False
+
+        if running:
+            black_Transition()
         pygame.display.update()
     else:
         running = False
