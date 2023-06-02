@@ -7,6 +7,8 @@ Tutorial
 Easy
 Normal
 Hard
+Ammo
+Health
 -
 Spela Spel
 Fortsatt Spel
@@ -14,3 +16,11 @@ Handledning
 Enkel
 Normal
 Tufft
+Ammo
+Liv
+
+
+
+
+
+
